@@ -4,7 +4,7 @@ pipeline {
     stages {
         stage('docker build') {
             steps {
-                sh 'docket build -t javaspring:v1 .'
+                sh 'docker build -t javaspring:v1 .'
             }
         }
       stage('docker tag') {

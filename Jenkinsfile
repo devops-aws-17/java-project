@@ -17,7 +17,7 @@ pipeline {
                 sh 'docker login'
             }
         }
-      stage('docker tag') {
+      stage('docker push') {
             steps {
                 sh 'docker push prasadchandu/nag:javaspring'
             }

@@ -4,12 +4,12 @@ pipeline {
     stages {
         stage('docker build') {
             steps {
-                sh 'docker build -t javaspring:v1 .'
+                sh 'docker build -t java:v1 .'
             }
         }
       stage('docker tag') {
             steps {
-                sh 'docker tag javaspring:v1 prasadchandu/nag:javaspring'
+                sh 'docker tag java:v1 prasadchandu/nag:javas'
             }
         }
       stage('docker login') {
@@ -19,7 +19,7 @@ pipeline {
         }
       stage('docker push') {
             steps {
-                sh 'docker push prasadchandu/nag:javaspring'
+                sh 'docker push prasadchandu/nag:javas'
             }
         }
     }

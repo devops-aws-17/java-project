@@ -10,5 +10,5 @@ spec:
   ports:
   - protocol: TCP
     port: 80  # Port exposed outside the cluster (e.g., for external traffic)
-    targetPort: 8080  # Port on the container that traffic is forwarded to
+    targetPort: 80  # Port on the container that traffic is forwarded to
   type: LoadBalancer

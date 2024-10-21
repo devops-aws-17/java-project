@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-app-service
+  labels:
+    app: nginx
+spec:
+  selector:
+    app: nginx  # This matches the Pods from the Deployment
+  ports:
+  - protocol: TCP
+    port: 80  # Port exposed outside the cluster (e.g., for external traffic)
+    targetPort: 8080  # Port on the container that traffic is forwarded to
+  type: LoadBalancer 

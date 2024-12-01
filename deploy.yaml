@@ -18,6 +18,6 @@ spec:
       - name: java
         image: abhi755/practise:java-v1
         ports:
-        - containerPort: 80
+        - containerPort: 8080
       imagePullSecrets:
         - name: regcred

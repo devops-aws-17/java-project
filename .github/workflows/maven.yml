@@ -9,10 +9,14 @@
 name: Java CI with Maven
 
 on:
+  # Trigger on push to specific branches or tags
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    branches:
+      - main  # Deploy to production on main branch
+      - dev   # Deploy to development on dev branch
+    tags:
+      - '*'   # Trigger for all tags (for version-based deployments)
+  # Manually trigger custom jobs
   workflow_dispatch:
 
 jobs:

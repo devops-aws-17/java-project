@@ -9,15 +9,19 @@
 name: Java CI with Maven
 
 on:
-  # Trigger on push to specific branches or tags
-  push:
-    branches:
-      - main  # Deploy to production on main branch
-      - dev   # Deploy to development on dev branch
-    tags:
-      - '*'   # Trigger for all tags (for version-based deployments)
-  # Manually trigger custom jobs
+  # Trigger manually using `workflow_dispatch`
   workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Select branch to deploy (e.g., main, dev)'
+        required: true
+        default: 'dev'
+        type: string
+      pipeline:
+        description: 'Select custom pipeline to run (build, deploy, etc.)'
+        required: true
+        default: 'build'
+        type: string
 
 jobs:
   build:

@@ -1,0 +1,124 @@
+name: CI/CD Pipeline
+
+on:
+  workflow_dispatch:  # Allows manual triggering
+    inputs:
+      job:
+        description: 'Specify the job to run'
+        required: true
+        type: choice
+        options:
+          - deploy-to-prod
+          - deploy-to-dev
+          - build-dev-image
+          - deploy-to-demo
+          - tags
+
+jobs:
+  build_and_tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build and push Docker image to AWS ECR
+        run: |
+          export DOCKER_IMAGE_TAG="${{ github.ref_name }}-$(git rev-parse --short HEAD)"
+          ./infrastructure/pipelines/generate-dot-env-and-rebuild-image.sh
+
+      - name: Log in to AWS ECR
+        uses: aws-actions/amazon-ecr-login@v1
+        with:
+          IMAGE_NAME: $AWS_ECR_NAME
+          TAGS: "${DOCKER_IMAGE_TAG}"
+          DEBUG: 'true'
+
+  deploy_to_ecs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Deploy ECS Task Definitions
+        run: |
+          export DOCKER_IMAGE_TAG="${BITBUCKET_DEPLOYMENT_ENVIRONMENT}-$(git rev-parse --short HEAD)"
+          ./infrastructure/pipelines/generate-ecs-task-definitions.sh
+
+      - name: Deploy to ECS Services
+        uses: aws-actions/aws-ecs-deploy-action@v1
+        with:
+          cluster: $AWS_ECS_CLUSTER
+          service: 'image-processor-web'
+          task-definition: './infrastructure/pipelines/aws/task-definition-web.dist.json'
+          wait-for-service-stability: true
+
+      - name: Deploy to ECS Worker Services
+        uses: aws-actions/aws-ecs-deploy-action@v1
+        with:
+          cluster: $AWS_ECS_CLUSTER
+          service: 'image-processor-ssh'
+          task-definition: './infrastructure/pipelines/aws/task-definition-app.dist.json'
+          wait-for-service-stability: true
+
+      - name: Deploy to ECS Supervisor Services
+        uses: aws-actions/aws-ecs-deploy-action@v1
+        with:
+          cluster: $AWS_ECS_CLUSTER
+          service: 'image-processor-worker'
+          task-definition: './infrastructure/pipelines/aws/task-definition-worker.dist.json'
+          wait-for-service-stability: true
+
+      - name: Deploy Supervisor ECS Service
+        uses: aws-actions/aws-ecs-deploy-action@v1
+        with:
+          cluster: $AWS_ECS_CLUSTER
+          service: 'image-processor-supervisor'
+          task-definition: './infrastructure/pipelines/aws/task-definition-supervisor.dist.json'
+          wait-for-service-stability: true
+
+  deploy-to-prod:
+    runs-on: ubuntu-latest
+    needs: deploy_to_ecs
+    steps:
+      - name: Deploy to Production
+        deployment: production
+
+  deploy-to-dev:
+    runs-on: ubuntu-latest
+    needs: build_and_tag
+    steps:
+      - name: Build and tag Docker image
+        deployment: development
+
+      - name: Deploy to ECS (dev)
+        needs: deploy_to_ecs
+        deployment: development
+
+  build-dev-image:
+    runs-on: ubuntu-latest
+    needs: build_and_tag
+    steps:
+      - name: Build and Tag Docker Image for Dev
+        deployment: development
+
+  deploy-to-demo:
+    runs-on: ubuntu-latest
+    needs: build_and_tag
+    steps:
+      - name: Build and Tag for Demo
+        deployment: development
+
+      - name: Deploy to Demo
+        needs: deploy_to_ecs
+        deployment: demo
+
+  tags:
+    '*':
+      runs-on: ubuntu-latest
+      needs: build_and_tag
+      steps:
+        - name: Auto build and push image to ECR when master branch is tagged
+          deployment: production
